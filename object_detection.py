@@ -13,7 +13,7 @@ kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 pipeline = (
     "nvarguscamerasrc sensor-id=0 ! "
     "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1 ! "
-    "nvvidconv ! "
+    "nvvidconv flip-method=2 ! "
     "video/x-raw, format=BGRx ! "
     "videoconvert ! "
     "video/x-raw, format=BGR ! "

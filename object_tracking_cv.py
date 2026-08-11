@@ -67,13 +67,16 @@ radius = 0
 pipeline = (
     "nvarguscamerasrc sensor-id=0 ! "
     "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1 ! "
-    "nvvidconv ! "
+    "nvvidconv flip-method=2 ! "
     "video/x-raw, format=BGRx ! "
     "videoconvert ! "
     "video/x-raw, format=BGR ! "
     "queue leaky=downstream max-size-buffers=1 ! "
     "appsink drop=true max-buffers=1 sync=false"
 )
+
+##         "video/x-raw, format=BGRx ! "
+
 
 cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
 
