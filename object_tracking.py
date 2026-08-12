@@ -1,7 +1,7 @@
-import numpy as np
-from numpy.linalg import inv
-import cv2
-import time
+import  numpy           as np
+from    numpy.linalg    import inv
+import  cv2
+import  time
 
 
 def KalmanFilter(mu_prev, sigma_prev, z):
@@ -13,16 +13,16 @@ def KalmanFilter(mu_prev, sigma_prev, z):
         K_t = sigma_bar.dot(C_t.transpose()).dot(inv(C_t.dot(sigma_bar).dot(C_t.transpose()) + Q_t))
         mu = mu_bar + K_t.dot(z - C_t.dot(mu_bar))
         sigma = (np.identity(2) - K_t.dot(C_t)).dot(sigma_bar)
-        return mu, sigma
+        return mu, sigma # mu:x, y, sigma:확신도(사용X)
 
 
 # Kalman filter 변수 정의
-A_t = np.array([[1, 1], [0, 1]])
-G = np.array([[0.5], [1]])
-R_t = G.dot(G.transpose())
-C_t = np.array([[1, 0]])
-Q_t = np.array([[1]])
-mu_t = np.array([[0, 0], [0, 0]])
+A_t     = np.array([[1, 1], [0, 1]])
+G       = np.array([[0.5], [1]])
+R_t     =  G.dot  (G.transpose())
+C_t     = np.array([[1, 0]])
+Q_t     = np.array([[1]])
+mu_t    = np.array([[0, 0], [0, 0]])
 sigma_t = np.array([[0, 0], [0, 0]])
 
 # 초록 LAB lower/upper range
@@ -50,7 +50,7 @@ pipeline = (
     "appsink drop=true max-buffers=1 sync=false"
 )
 
-cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER) # GStreamer
 
 while True:
     start = time.time()
@@ -80,12 +80,12 @@ while True:
     contour_lst, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if len(contour_lst) > 0:
-        # 가장 큰 contour 선택
-        contour = max(contour_lst, key=cv2.contourArea)
+        
+        contour = max(contour_lst, key=cv2.contourArea)     # 가장 큰 contour 선택
         # 최소 외접원 반지름
         _, radius = cv2.minEnclosingCircle(contour)
-        # 무게중심
-        M = cv2.moments(contour)
+
+        M = cv2.moments(contour)                            # 무게중심
         if M["m00"] != 0:
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
         else:
@@ -100,22 +100,23 @@ while True:
             found = True
 
     # 최초 검출 이후 Kalman Filter 적용
-    # 측정값 사용 (visible) -> Prediction & Update
-    if found and (len(contour_lst) > 0):
+    if found and (len(contour_lst) > 0):                    # 측정값 사용 (visible) -> Prediction & Update
         mu_t, sigma_t = KalmanFilter(mu_t, sigma_t, np.array([list(center)]))
         x_bel, y_bel = mu_t[0][0], mu_t[0][1]
 
-    # 측정값 미사용 (occluded) -> Prediction
-    elif found and (len(contour_lst) <= 0):
+    
+    elif found and (len(contour_lst) <= 0):                 # 측정값 미사용 (occluded) -> Prediction
         mu_t, sigma_t = KalmanFilter(mu_t, sigma_t, None)
         x_bel, y_bel = mu_t[0][0], mu_t[0][1]
 
     # 예측한 객체 위치에 노란 원 overlay
     cv2.circle(frame, (int(x_bel), int(y_bel)), int(radius), (0, 255, 255), 2)
     cv2.circle(frame, (int(x_bel), int(y_bel)), 5, (0, 255, 255), -1)
-
     cv2.imshow("Object Detection", frame)
-    # cv2.imshow("LAB Mask", mask)
+
+    #cv2.circle(mask, (int(x_bel), int(y_bel)), int(radius), (255, 255, 255), 2)
+    #cv2.circle(mask, (int(x_bel), int(y_bel)), 5, (255, 255, 255), -1)
+    #cv2.imshow("LAB Mask", mask)
 
     # while loop rate (FPS) 설정
     time.sleep(max(1. / 25 - (time.time() - start), 0))

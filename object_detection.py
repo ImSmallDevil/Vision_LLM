@@ -21,53 +21,37 @@ pipeline = (
     "appsink drop=true max-buffers=1 sync=false"
 )
 
-cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER) # 시작
 
 while True:
     start = time.time()
-    ret, frame = cap.read()
+    ret, frame = cap.read()                         # Read
 
     if not ret:
-            break
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+    if cv2.waitKey(1) & 0xFF == ord("q") :
         break
 
-    frame = cv2.flip(frame, 0)
+    frame = cv2.flip(frame, 0)  # 1, 0, -1
 
-    # 가우시안 블러
-    blr = cv2.GaussianBlur(frame, (11, 11), 0)
-
-    # LAB 색공간 변환
-    lab = cv2.cvtColor(blr, cv2.COLOR_BGR2LAB)
-
-    # LAB color segmentation
-    mask = cv2.inRange(lab, green_lower, green_upper)
-
-    # Opening 2회, Dilation 2회
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
-    mask = cv2.dilate(mask, kernel, iterations=2)
-
-    # Contour detection
-    contour_lst, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    if len(contour_lst) > 0:
-        # 가장 큰 contour 선택
-        contour = max(contour_lst, key=cv2.contourArea)
-        # 최소 외접원 반지름
-        _, radius = cv2.minEnclosingCircle(contour)
-        # 무게중심
-        M = cv2.moments(contour)
-        if M["m00"] != 0:
+    blr = cv2.GaussianBlur(frame, (11, 11), 0)          # 가우시안 블러
+    lab = cv2.cvtColor(blr, cv2.COLOR_BGR2LAB)          # LAB 색공간 변환
+    mask = cv2.inRange(lab, green_lower, green_upper)   # LAB color segmentation
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2) # Opening 2회
+    mask = cv2.dilate(mask, kernel, iterations=2)                       # Dilation 2회
+    contour_lst, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # Contour detection RETR_EXTERNAL:바깥테두리만
+    if len(contour_lst) > 0:                                # contour가 있으면
+        contour = max(contour_lst, key=cv2.contourArea)     # 가장 큰 contour 선택
+        _, radius = cv2.minEnclosingCircle(contour)         # 최소외접원 반지름
+        M = cv2.moments(contour)                            # 무게중심
+        if M["m00"] != 0:                                   # 디바이드 바이 제로 방지
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
         else:
             center = (0, 0)
-
-        # 검출된 객체에 파란 원 overlay
-        cv2.circle(frame, center, int(radius), (255, 0, 0), 2)
-        cv2.circle(frame, center, 5, (255, 0, 0), -1)
-
+        cv2.circle(frame, center, int(radius), (255, 0, 0), 2)  # 검출된 객체에 파란 원 overlay
+        cv2.circle(frame, center, 5, (255, 0, 0), -1)           # 중심점
+    #cv2.imshow("LAB Mask", mask)
     cv2.imshow("Object Detection", frame)
-    # cv2.imshow("LAB Mask", mask)
 
     # while loop rate (FPS) 설정
     time.sleep(max(1. / 25 - (time.time() - start), 0))
